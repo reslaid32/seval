@@ -67,6 +67,16 @@ Sign get_sign(StrT str, size_t& i) {
 }
 
 /**
+ * @brief Checks if the character is a binary digit.
+ * @param literal The character to check.
+ * @return True if the character is a binary digit ('0' or '1'), otherwise false.
+ */
+SEVAL_INLINE bool is_binary_ch(const char literal) {
+    return (literal == '0' || literal == '1');
+}
+
+
+/**
  * @brief Checks if the character is a decimal digit.
  * @param literal The character to check.
  * @return True if the character is a decimal digit, otherwise false.
@@ -146,6 +156,38 @@ SEVAL_INLINE T evaluate_hexadecimal_ch(const char ch) {
 }
 
 /**
+ * @brief Converts a decimal character to its integer value.
+ * @param ch The decimal character to convert.
+ * @return The integer value of the decimal character.
+ */
+template <typename T>
+SEVAL_INLINE T evaluate_binary_ch(const char ch) {
+    if (is_binary_ch(ch)) {
+        return evaluate_decimal_ch<T>(ch);
+    }
+    return 0;
+}
+
+/**
+ * @brief Converts any numeric character (decimal, hexadecimal, or binary) to its integer value.
+ * @param ch The character to convert. Can be a decimal ('0'-'9'), lowercase hexadecimal ('a'-'f'), uppercase hexadecimal ('A'-'F'), or binary ('0' or '1').
+ * @return The integer value of the character, or 0 if the character is invalid.
+ */
+template <typename T>
+SEVAL_INLINE T evaluate_any_ch(const char ch) {
+    if (is_decimal_ch(ch)) {
+        return evaluate_decimal_ch<T>(ch);
+    } else if (is_lower_hex_ch(ch)) {
+        return evaluate_lower_hex_ch<T>(ch);
+    } else if (is_upper_hex_ch(ch)) {
+        return evaluate_upper_hex_ch<T>(ch);
+    } else if (is_binary_ch(ch)) {
+        return evaluate_binary_ch<T>(ch);
+    }
+    return 0; // Return 0 for invalid characters
+}
+
+/**
  * @brief Parses a decimal literal from the string.
  * @param str The string being parsed.
  * @param number The number to update with the parsed value.
@@ -153,10 +195,24 @@ SEVAL_INLINE T evaluate_hexadecimal_ch(const char ch) {
  */
 template <typename T, typename StrT>
 SEVAL_INLINE void evaluate_decimal_literal(StrT str, T& number, size_t& i) {
+    #if __cplusplus >= 201703L
+    if constexpr (std::is_integral<T>::value) {
+        while (str[i] != '\0' && is_hexadecimal_ch(str[i])) {
+            number = (number << 3) + (number << 1) + evaluate_decimal_ch<T>(str[i]);
+            next_(i);
+        }
+    } else {
+        while (str[i] != '\0' && is_hexadecimal_ch(str[i])) {
+            number = number * 10 + evaluate_decimal_ch<T>(str[i]);
+            next_(i);
+        }
+    }
+    #else
     while (str[i] != '\0' && is_decimal_ch(str[i])) {
         number = number * 10 + evaluate_decimal_ch<T>(str[i]);
         next_(i);
     }
+    #endif
 }
 
 /**
@@ -196,7 +252,11 @@ SEVAL_INLINE void evaluate_exponent_literal(StrT str, T& number, size_t& i) {
 
         int exponent = 0;
         while (str[i] != '\0' && is_decimal_ch(str[i])) {
+        #if __cplusplus >= 201703L
+            exponent = (exponent << 3) + (exponent << 1) + evaluate_decimal_ch<int>(str[i]);
+        #else
             exponent = exponent * 10 + evaluate_decimal_ch<int>(str[i]);
+        #endif /* C++17 */
             next_(i);
         }
         number *= std::pow(static_cast<T>(10), static_cast<T>(expSign * exponent));
@@ -211,10 +271,23 @@ SEVAL_INLINE void evaluate_exponent_literal(StrT str, T& number, size_t& i) {
  */
 template <typename T, typename StrT>
 SEVAL_INLINE void evaluate_hexadecimal_literal(StrT str, T& number, size_t& i) {
+#if __cplusplus >= 201703L
+    if constexpr (std::is_integral<T>::value) {
+        while (str[i] != '\0' && is_hexadecimal_ch(str[i])) {
+            number = (number << 4) | evaluate_hexadecimal_ch<T>(str[i]);
+            next_(i);
+        }
+    } else {
+        while (str[i] != '\0' && is_hexadecimal_ch(str[i])) {
+            next_(i);
+        }
+    }
+#else
     while (str[i] != '\0' && is_hexadecimal_ch(str[i])) {
         number = number * 16 + evaluate_hexadecimal_ch<T>(str[i]);
         next_(i);
     }
+#endif /* C++17 */
 }
 
 /**
@@ -225,16 +298,23 @@ SEVAL_INLINE void evaluate_hexadecimal_literal(StrT str, T& number, size_t& i) {
  */
 template <typename T, typename StrT>
 SEVAL_INLINE void evaluate_binary_literal(StrT str, T& number, size_t& i) {
+#if __cplusplus >= 201703L
     if constexpr (std::is_integral<T>::value) {
-        while (str[i] != '\0' && (str[i] == '0' || str[i] == '1')) {
-            number = (number << 1) | evaluate_decimal_ch<T>(str[i]);
+        while (str[i] != '\0' && is_binary_ch(str[i])) {
+            number = (number << 1) | evaluate_binary_ch<T>(str[i]);
             next_(i);
         }
     } else {
-        while (str[i] != '\0' && (str[i] == '0' || str[i] == '1')) {
+        while (str[i] != '\0' && is_binary_ch(str[i])) {
             next_(i);
         }
     }
+#else
+    while (str[i] != '\0' && is_binary_ch(str[i])) {
+        number = number * 2 + evaluate_binary_ch<T>(str[i]);
+        next_(i);
+    }
+#endif /* C++17 */
 }
 
 /**
