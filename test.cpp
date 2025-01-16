@@ -65,6 +65,15 @@ void seval_test() {
         assert(floatpoint_compare(seval::evaluate<float, const char*>("3.14e2"), 314.0f));
         assert(floatpoint_compare(seval::evaluate<float, const char*>("-3.14E-2"), -0.0314f));
     }
+    /* BINARY */
+    {
+        assert((seval::evaluate<int, const char*>("0b1101") == 0b1101));
+        assert((seval::evaluate<int, const char*>("0b101010") == 0b101010));
+        assert((seval::evaluate<int, const char*>("0b100000000") == 0b100000000));
+        assert((seval::evaluate<int, const char*>("0b11111111") == 0b11111111));
+        assert((seval::evaluate<int, const char*>("-0b1101") == -0b1101));
+        assert((seval::evaluate<int, const char*>("-0b101010") == -0b101010));
+    }
 }
 
 int main() {

@@ -119,7 +119,21 @@ template <typename T, typename StrT>
 SEVAL_INLINE void evaluate_hexadecimal_literal(StrT str, T& number, size_t& i) {
     while (str[i] != '\0' && is_hexadecimal_ch(str[i])) {
         number = number * 16 + evaluate_hexadecimal_ch<T>(str[i]);
-        i++;
+        next_(i);
+    }
+}
+
+template <typename T, typename StrT>
+SEVAL_INLINE void evaluate_binary_literal(StrT str, T& number, size_t& i) {
+    if constexpr (std::is_integral<T>::value) {
+        while (str[i] != '\0' && (str[i] == '0' || str[i] == '1')) {
+            number = (number << 1) | evaluate_decimal_ch<T>(str[i]);
+            next_(i);
+        }
+    } else {
+        while (str[i] != '\0' && (str[i] == '0' || str[i] == '1')) {
+            next_(i);
+        }
     }
 }
 
@@ -128,8 +142,13 @@ SEVAL_INLINE bool has_hexadecimal_prefix(StrT literal, size_t& i) {
     return (literal[i] == '0') && (literal[i + 1] == 'x' || literal[i + 1] == 'X');
 }
 
+template <typename StrT>
+SEVAL_INLINE bool has_binary_prefix(StrT literal, size_t& i) {
+    return (literal[i] == '0') && (literal[i + 1] == 'b' || literal[i + 1] == 'B');
+}
+
 template <typename T, typename StrT>
-SEVAL_INLINE T evaluate(StrT str, bool consideSign = true, bool consideFloatPoint = true, bool consideHex = true, bool consideExponent = true) {
+SEVAL_INLINE T evaluate(StrT str, bool consideSign = true, bool consideFloatPoint = true, bool consideHex = true, bool consideBinary = true, bool consideExponent = true) {
     static_assert(std::is_arithmetic<T>::value, "Template parameter T must be an arithmetic type (integral or floating-point).");
     
     T number = 0;
@@ -145,16 +164,18 @@ SEVAL_INLINE T evaluate(StrT str, bool consideSign = true, bool consideFloatPoin
         }
     }
 
-    if (consideHex && has_hexadecimal_prefix<StrT>(str, i)) {
+    if (consideBinary && has_binary_prefix<StrT>(str, i)) {
+        skip_(i, 2); // Eat: binaryPrefix (0b or 0B) 
+        evaluate_binary_literal<T, StrT>(str, number, i);
+    } else if (consideHex && has_hexadecimal_prefix<StrT>(str, i)) {
         skip_(i, 2); /* Eat: hexadecimalPrefix (0x or 0X) */
         evaluate_hexadecimal_literal<T, StrT>(str, number, i);
-    }
-    else {
+    } else {
         evaluate_decimal_literal<T, StrT>(str, number, i);
     }
 
     if (std::is_floating_point<T>::value && consideFloatPoint && str[i] == '.') {
-        i++;
+        next_(i);
         T decimalPlace = static_cast<T>(0.1);
         evaluate_floatpoint_literal<T, StrT>(str, number, i, decimalPlace);
     }
