@@ -1,4 +1,15 @@
-/* seval.hpp */
+/**
+ * @file seval.hpp
+ * @brief A header file providing functionality for evaluating numerical literals from a string.
+ * 
+ * This header contains several utility functions and templates for parsing and evaluating
+ * decimal, hexadecimal, binary, and floating-point numbers, including handling signs, exponents, and prefixes.
+ * The functions are designed to support both integral and floating-point types.
+ * 
+ * std: c++17
+ */
+
+
 #pragma once
 
 #include <iostream>
@@ -9,22 +20,41 @@
 #define SEVAL_INLINE inline
 #endif // SEVAL_INLINE
 
-
 namespace seval {
+
+/**
+ * @enum Sign
+ * @brief Represents the sign of a number (positive, negative, or none).
+ */
 enum Sign : int8_t {
-    SIGN_NEGATIVE = -1,
-    SIGN_POSITIVE =  1,
-    SIGN_NONE     =  0,
+    SIGN_NEGATIVE = -1, /**< Negative sign */
+    SIGN_POSITIVE =  1, /**< Positive sign */
+    SIGN_NONE     =  0, /**< No sign */
 };
 
+/**
+ * @brief Skips `cnt` characters in the string by incrementing the index.
+ * @param i The index to increment.
+ * @param cnt The number of characters to skip.
+ */
 SEVAL_INLINE void skip_(size_t& i, size_t cnt) {
     i += cnt;
 }
 
+/**
+ * @brief Advances the index by 1.
+ * @param i The index to increment.
+ */
 SEVAL_INLINE void next_(size_t& i) {
     skip_(i, 1);
 }
 
+/**
+ * @brief Determines the sign of the number at the current index in the string.
+ * @param str The string being parsed.
+ * @param i The current index in the string.
+ * @return The sign of the number (negative, positive, or none).
+ */
 template <typename StrT>
 Sign get_sign(StrT str, size_t& i) {
     if (str[i] == '-') {
@@ -36,38 +66,77 @@ Sign get_sign(StrT str, size_t& i) {
     }
 }
 
+/**
+ * @brief Checks if the character is a decimal digit.
+ * @param literal The character to check.
+ * @return True if the character is a decimal digit, otherwise false.
+ */
 SEVAL_INLINE bool is_decimal_ch(const char literal) {
     return (literal >= '0' && literal <= '9');
 }
 
+/**
+ * @brief Checks if the character is a lowercase hexadecimal digit.
+ * @param literal The character to check.
+ * @return True if the character is a lowercase hexadecimal digit, otherwise false.
+ */
 SEVAL_INLINE bool is_lower_hex_ch(const char literal) {
     return (literal >= 'a' && literal <= 'f');
 }
 
+/**
+ * @brief Checks if the character is an uppercase hexadecimal digit.
+ * @param literal The character to check.
+ * @return True if the character is an uppercase hexadecimal digit, otherwise false.
+ */
 SEVAL_INLINE bool is_upper_hex_ch(const char literal) {
     return (literal >= 'A' && literal <= 'F');
 }
 
+/**
+ * @brief Checks if the character is a valid hexadecimal digit.
+ * @param literal The character to check.
+ * @return True if the character is a hexadecimal digit (0-9, a-f, A-F), otherwise false.
+ */
 SEVAL_INLINE bool is_hexadecimal_ch(const char literal) {
     return (is_decimal_ch(literal) || is_lower_hex_ch(literal) || is_upper_hex_ch(literal));
 }
 
+/**
+ * @brief Converts a decimal character to its integer value.
+ * @param ch The decimal character to convert.
+ * @return The integer value of the decimal character.
+ */
 template <typename T>
 SEVAL_INLINE T evaluate_decimal_ch(const char ch) {
-    // if (!is_decimal_ch(ch)) return 0;
     return (ch - '0');
 }
 
+/**
+ * @brief Converts a lowercase hexadecimal character to its integer value.
+ * @param ch The lowercase hexadecimal character to convert.
+ * @return The integer value of the lowercase hexadecimal character.
+ */
 template <typename T>
 SEVAL_INLINE T evaluate_lower_hex_ch(const char ch) {
     return (ch - 'a' + 10);
 }
 
+/**
+ * @brief Converts an uppercase hexadecimal character to its integer value.
+ * @param ch The uppercase hexadecimal character to convert.
+ * @return The integer value of the uppercase hexadecimal character.
+ */
 template <typename T>
 SEVAL_INLINE T evaluate_upper_hex_ch(const char ch) {
     return (ch - 'A' + 10);
 }
 
+/**
+ * @brief Converts a hexadecimal character to its integer value.
+ * @param ch The hexadecimal character to convert.
+ * @return The integer value of the hexadecimal character.
+ */
 template <typename T>
 SEVAL_INLINE T evaluate_hexadecimal_ch(const char ch) {
     if (is_decimal_ch(ch)) return evaluate_decimal_ch<T>(ch);
@@ -76,6 +145,12 @@ SEVAL_INLINE T evaluate_hexadecimal_ch(const char ch) {
     return 0;
 }
 
+/**
+ * @brief Parses a decimal literal from the string.
+ * @param str The string being parsed.
+ * @param number The number to update with the parsed value.
+ * @param i The current index in the string.
+ */
 template <typename T, typename StrT>
 SEVAL_INLINE void evaluate_decimal_literal(StrT str, T& number, size_t& i) {
     while (str[i] != '\0' && is_decimal_ch(str[i])) {
@@ -84,6 +159,13 @@ SEVAL_INLINE void evaluate_decimal_literal(StrT str, T& number, size_t& i) {
     }
 }
 
+/**
+ * @brief Parses a floating-point literal from the string.
+ * @param str The string being parsed.
+ * @param number The number to update with the parsed value.
+ * @param i The current index in the string.
+ * @param decimalPlace The current decimal place.
+ */
 template <typename T, typename StrT>
 SEVAL_INLINE void evaluate_floatpoint_literal(StrT str, T& number, size_t& i, T decimalPlace) {
     while (str[i] != '\0' && is_decimal_ch(str[i])) {
@@ -93,6 +175,12 @@ SEVAL_INLINE void evaluate_floatpoint_literal(StrT str, T& number, size_t& i, T 
     }
 }
 
+/**
+ * @brief Parses an exponent part of a floating-point literal.
+ * @param str The string being parsed.
+ * @param number The number to update with the exponent.
+ * @param i The current index in the string.
+ */
 template <typename T, typename StrT>
 SEVAL_INLINE void evaluate_exponent_literal(StrT str, T& number, size_t& i) {
     if (str[i] == 'e' || str[i] == 'E') {
@@ -115,6 +203,12 @@ SEVAL_INLINE void evaluate_exponent_literal(StrT str, T& number, size_t& i) {
     }
 }
 
+/**
+ * @brief Parses a hexadecimal literal from the string.
+ * @param str The string being parsed.
+ * @param number The number to update with the parsed value.
+ * @param i The current index in the string.
+ */
 template <typename T, typename StrT>
 SEVAL_INLINE void evaluate_hexadecimal_literal(StrT str, T& number, size_t& i) {
     while (str[i] != '\0' && is_hexadecimal_ch(str[i])) {
@@ -123,6 +217,12 @@ SEVAL_INLINE void evaluate_hexadecimal_literal(StrT str, T& number, size_t& i) {
     }
 }
 
+/**
+ * @brief Parses a binary literal from the string.
+ * @param str The string being parsed.
+ * @param number The number to update with the parsed value.
+ * @param i The current index in the string.
+ */
 template <typename T, typename StrT>
 SEVAL_INLINE void evaluate_binary_literal(StrT str, T& number, size_t& i) {
     if constexpr (std::is_integral<T>::value) {
@@ -137,16 +237,38 @@ SEVAL_INLINE void evaluate_binary_literal(StrT str, T& number, size_t& i) {
     }
 }
 
+/**
+ * @brief Checks if the string has a hexadecimal prefix ("0x" or "0X").
+ * @param literal The string to check.
+ * @param i The current index in the string.
+ * @return True if the string has a hexadecimal prefix, otherwise false.
+ */
 template <typename StrT>
 SEVAL_INLINE bool has_hexadecimal_prefix(StrT literal, size_t& i) {
     return (literal[i] == '0') && (literal[i + 1] == 'x' || literal[i + 1] == 'X');
 }
 
+/**
+ * @brief Checks if the string has a binary prefix ("0b" or "0B").
+ * @param literal The string to check.
+ * @param i The current index in the string.
+ * @return True if the string has a binary prefix, otherwise false.
+ */
 template <typename StrT>
 SEVAL_INLINE bool has_binary_prefix(StrT literal, size_t& i) {
     return (literal[i] == '0') && (literal[i + 1] == 'b' || literal[i + 1] == 'B');
 }
 
+/**
+ * @brief Evaluates a number literal from the string.
+ * @param str The string to evaluate.
+ * @param consideSign Whether to consider the sign of the number.
+ * @param consideFloatPoint Whether to consider floating-point literals.
+ * @param consideHex Whether to consider hexadecimal literals.
+ * @param consideBinary Whether to consider binary literals.
+ * @param consideExponent Whether to consider exponent literals.
+ * @return The evaluated number.
+ */
 template <typename T, typename StrT>
 SEVAL_INLINE T evaluate(StrT str, bool consideSign = true, bool consideFloatPoint = true, bool consideHex = true, bool consideBinary = true, bool consideExponent = true) {
     static_assert(std::is_arithmetic<T>::value, "Template parameter T must be an arithmetic type (integral or floating-point).");
@@ -186,4 +308,5 @@ SEVAL_INLINE T evaluate(StrT str, bool consideSign = true, bool consideFloatPoin
 
     return consideSign ? number * sign : number;
 }
+
 } /* seval */
