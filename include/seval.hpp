@@ -94,12 +94,59 @@ enum Sign : int8_t {
 };
 
 /**
+ * @brief Decreases the index `i` by the specified count `cnt`.
+ * @param i The index to be decreased.
+ * @param cnt The number of characters to subtract from `i`.
+ * This function adjusts the index `i` by subtracting `cnt` from it.
+ */
+SEVAL_INLINE void dec_(size_t& i, size_t cnt) {
+    if (i >= cnt) {
+        i -= cnt;
+    } else {
+        i = 0; // Prevent index from going below 0
+    }
+}
+
+/**
+ * @brief Increments the value of the given index by the specified count.
+ * @param i The index to be incremented.
+ * @param cnt The count to increment the index by.
+ */
+SEVAL_INLINE void inc_(size_t& i, size_t cnt) {
+    if (cnt >= 0) { // Ensure the count is non-negative before incrementing
+        i += cnt;
+    }
+}
+
+/**
+ * @brief Conditionally increments the value of the given index by the specified count.
+ * @param cond The condition that determines whether the increment will happen.
+ * @param i The index to be incremented.
+ * @param cnt The count to increment the index by.
+ * @details If the condition `cond` is true, the index `i` is incremented by `cnt` using `inc_`.
+ */
+SEVAL_INLINE void inc_if_(bool cond, size_t& i, size_t cnt) {
+    if (cond) return inc_(i, cnt);
+}
+
+/**
+ * @brief Decreases the index `i` by the specified count `cnt` if the condition is true.
+ * @param cond The condition to check.
+ * @param i The index to be decreased.
+ * @param cnt The number of characters to subtract from `i`.
+ * This function decreases `i` by `cnt` only if the condition `cond` is true.
+ */
+SEVAL_INLINE void dec_if_(bool cond, size_t& i, size_t cnt) {
+    if (cond) return dec_(i, cnt);
+}
+
+/**
  * @brief Skips `cnt` characters in the string by incrementing the index.
  * @param i The index to increment.
  * @param cnt The number of characters to skip.
  */
 SEVAL_INLINE void skip_(size_t& i, size_t cnt) {
-    i += cnt;
+    return inc_(i, cnt);
 }
 
 /**
@@ -107,7 +154,15 @@ SEVAL_INLINE void skip_(size_t& i, size_t cnt) {
  * @param i The index to increment.
  */
 SEVAL_INLINE void next_(size_t& i) {
-    skip_(i, 1);
+    return inc_(i, 1);
+}
+
+/**
+ * @brief Decrements the index by 1.
+ * @param i The index to increment.
+ */
+SEVAL_INLINE void prev_(size_t& i) {
+    return dec_(i, 1);
 }
 
 /**
@@ -379,154 +434,193 @@ SEVAL_INLINE void evaluate_binary_literal(StrT str, T& number, size_t& i) {
 }
 
 /**
- * @brief Parses a decimal literal from the string with a specified length.
+ * @brief Determines the count based on whether the sign and prefix should be considered in the maximum length.
+ * @param cnt The count to update based on the current index.
+ * @param i The current index in the string.
+ * @param consideSignAndPrefixInMaxLength Whether to include the sign and prefix in the maximum length calculation.
+ */
+SEVAL_INLINE void _get_cnti(size_t& cnt, size_t& i, bool consideSignAndPrefixInMaxLength) {
+    if (consideSignAndPrefixInMaxLength) {
+        cnt = i;  // If considering sign and prefix, set the count to the current index
+    } else {
+        cnt = 0;  // If not considering sign and prefix, set the count to 0
+    }
+}
+
+/**
+ * @brief Checks whether the iteration can continue based on the count and maximum length.
+ * 
+ * @param cnt The current count or iteration index.
+ * @param maxLength The maximum allowed length for the iteration.
+ * 
+ * @return `true` if the current count is less than the maximum length, otherwise `false`.
+ * 
+ * @note This function helps to ensure that an iteration does not exceed the specified maximum length.
+ */
+SEVAL_INLINE bool _cnti_can_iterate(size_t& cnt, size_t& maxLength) {
+    // std::cout << "Called can iterate with args: cnt(" << cnt << ")" << " maxLength(" << maxLength << ")\n";
+    return cnt < maxLength;
+}
+
+SEVAL_INLINE void _cnti_next(size_t& cnt, size_t& i) {
+    inc_(cnt,1);
+    inc_(i,1);
+}
+
+/**
+ * @brief Parses a decimal literal from the string with a specified maximum length.
  * @param str The string being parsed.
  * @param number The number to update with the parsed value.
  * @param i The current index in the string.
  * @param maxLength The maximum number of characters to read.
+ * @param consideSignAndPrefixInMaxLength Whether to include the sign and prefix in the maximum length calculation.
  */
 template <typename T, typename StrT>
-SEVAL_INLINE void evaluate_decimal_literal_n(StrT str, T& number, size_t& i, size_t maxLength) {
-    size_t count = 0;
+SEVAL_INLINE void evaluate_decimal_literal_n(StrT str, T& number, size_t& i, size_t maxLength, bool consideSignAndPrefixInMaxLength = true) {
+    size_t cnt = 0;
+    _get_cnti(cnt, i, consideSignAndPrefixInMaxLength);
+
     #if __cplusplus >= 201703L
     if constexpr (_TypeTraitsSpace::is_integral<T>::value) {
-        while (str[i] != '\0' && is_hexadecimal_ch(str[i]) && count < maxLength) {
+        while (str[i] != '\0' && is_hexadecimal_ch(str[i]) && _cnti_can_iterate(cnt, maxLength)) {
             number = (number << 3) + (number << 1) + evaluate_decimal_ch<T>(str[i]);
-            next_(i);
-            count++;
+            // next_(i);
+            _cnti_next(cnt,i);
         }
     } else {
-        while (str[i] != '\0' && is_hexadecimal_ch(str[i]) && count < maxLength) {
+        while (str[i] != '\0' && is_hexadecimal_ch(str[i]) && _cnti_can_iterate(cnt, maxLength)) {
             number = number * 10 + evaluate_decimal_ch<T>(str[i]);
-            next_(i);
-            count++;
+            // next_(i);
+            _cnti_next(cnt,i);
         }
     }
     #else
-    while (str[i] != '\0' && is_decimal_ch(str[i]) && count < maxLength) {
+    while (str[i] != '\0' && is_decimal_ch(str[i]) && _cnti_can_iterate(cnt, maxLength)) {
         number = number * 10 + evaluate_decimal_ch<T>(str[i]);
-        next_(i);
-        count++;
+        // next_(i);
+        _cnti_next(cnt,i);
     }
     #endif
 }
 
 /**
- * @brief Parses a floating-point literal from the string with a specified length.
+ * @brief Parses a floating-point literal from the string with a specified maximum length.
  * @param str The string being parsed.
  * @param number The number to update with the parsed value.
  * @param i The current index in the string.
  * @param decimalPlace The current decimal place.
  * @param maxLength The maximum number of characters to read.
+ * @param consideSignAndPrefixInMaxLength Whether to include the sign and prefix in the maximum length calculation.
  */
 template <typename T, typename StrT>
-SEVAL_INLINE void evaluate_floatpoint_literal_n(StrT str, T& number, size_t& i, T decimalPlace, size_t maxLength) {
-    size_t count = 0;
-    while (str[i] != '\0' && is_decimal_ch(str[i]) && count < maxLength) {
+SEVAL_INLINE void evaluate_floatpoint_literal_n(StrT str, T& number, size_t& i, T decimalPlace, size_t maxLength, bool consideSignAndPrefixInMaxLength = true) {
+    size_t cnt = 0;
+    _get_cnti(cnt, i, consideSignAndPrefixInMaxLength);
+
+    while (str[i] != '\0' && is_decimal_ch(str[i]) && _cnti_can_iterate(cnt, maxLength)) {
         number += evaluate_decimal_ch<T>(str[i]) * decimalPlace;
         decimalPlace /= static_cast<T>(10);
-        next_(i);
-        count++;
+        /* next_(i) */ _cnti_next(cnt,i);
     }
 }
 
 /**
- * @brief Parses an exponent part of a floating-point literal with a specified length.
+ * @brief Parses the exponent part of a floating-point literal with a specified maximum length.
  * @param str The string being parsed.
  * @param number The number to update with the exponent.
  * @param i The current index in the string.
  * @param maxLength The maximum number of characters to read.
+ * @param consideSignAndPrefixInMaxLength Whether to include the sign and prefix in the maximum length calculation.
  */
 template <typename T, typename StrT>
-SEVAL_INLINE void evaluate_exponent_literal_n(StrT str, T& number, size_t& i, size_t maxLength) {
-    size_t count = 0;
+SEVAL_INLINE void evaluate_exponent_literal_n(StrT str, T& number, size_t& i, size_t maxLength, bool consideSignAndPrefixInMaxLength = true) {
+    size_t cnt = 0;
+    _get_cnti(cnt, i, consideSignAndPrefixInMaxLength);
+
     if (str[i] == 'e' || str[i] == 'E') {
-        next_(i);
+        /* next_(i) */ _cnti_next(cnt,i);
         Sign expSign = SIGN_POSITIVE;
 
         if (str[i] == '-') {
             expSign = SIGN_NEGATIVE;
-            next_(i);
+            /* next_(i) */ _cnti_next(cnt,i);
         } else if (str[i] == '+') {
-            next_(i);
+            /* next_(i) */ _cnti_next(cnt,i);
         }
 
         int exponent = 0;
-        while (str[i] != '\0' && is_decimal_ch(str[i]) && count < maxLength) {
+        while (str[i] != '\0' && is_decimal_ch(str[i]) && _cnti_can_iterate(cnt, maxLength)) {
         #if __cplusplus >= 201703L
             exponent = (exponent << 3) + (exponent << 1) + evaluate_decimal_ch<int>(str[i]);
         #else
             exponent = exponent * 10 + evaluate_decimal_ch<int>(str[i]);
-        #endif /* C++17 */
-            next_(i);
-            count++;
+        #endif
+            /* next_(i) */ _cnti_next(cnt,i);
         }
         number *= std::pow(static_cast<T>(10), static_cast<T>(expSign * exponent));
     }
 }
 
 /**
- * @brief Parses a hexadecimal literal from the string with a specified length.
+ * @brief Parses a hexadecimal literal from the string with a specified maximum length.
  * @param str The string being parsed.
  * @param number The number to update with the parsed value.
  * @param i The current index in the string.
  * @param maxLength The maximum number of characters to read.
+ * @param consideSignAndPrefixInMaxLength Whether to include the sign and prefix in the maximum length calculation.
  */
 template <typename T, typename StrT>
-SEVAL_INLINE void evaluate_hexadecimal_literal_n(StrT str, T& number, size_t& i, size_t maxLength) {
-    size_t count = 0;
+SEVAL_INLINE void evaluate_hexadecimal_literal_n(StrT str, T& number, size_t& i, size_t maxLength, bool consideSignAndPrefixInMaxLength = true) {
+    size_t cnt = 0;
+    _get_cnti(cnt, i, consideSignAndPrefixInMaxLength);
 #if __cplusplus >= 201703L
     if constexpr (_TypeTraitsSpace::is_integral<T>::value) {
-        while (str[i] != '\0' && is_hexadecimal_ch(str[i]) && count < maxLength) {
+        while (str[i] != '\0' && is_hexadecimal_ch(str[i]) && _cnti_can_iterate(cnt, maxLength)) {
             number = (number << 4) | evaluate_hexadecimal_ch<T>(str[i]);
-            next_(i);
-            count++;
+            /* next_(i) */ _cnti_next(cnt,i);
         }
     } else {
-        while (str[i] != '\0' && is_hexadecimal_ch(str[i]) && count < maxLength) {
-            next_(i);
-            count++;
+        while (str[i] != '\0' && is_hexadecimal_ch(str[i]) && _cnti_can_iterate(cnt, maxLength)) {
+            /* next_(i) */ _cnti_next(cnt,i);
         }
     }
 #else
-    while (str[i] != '\0' && is_hexadecimal_ch(str[i]) && count < maxLength) {
+    while (str[i] != '\0' && is_hexadecimal_ch(str[i]) && _cnti_can_iterate(cnt, maxLength)) {
         number = number * 16 + evaluate_hexadecimal_ch<T>(str[i]);
-        next_(i);
-        count++;
+        /* next_(i) */ _cnti_next(cnt,i);
     }
-#endif /* C++17 */
+#endif
 }
 
 /**
- * @brief Parses a binary literal from the string with a specified length.
+ * @brief Parses a binary literal from the string with a specified maximum length.
  * @param str The string being parsed.
  * @param number The number to update with the parsed value.
  * @param i The current index in the string.
  * @param maxLength The maximum number of characters to read.
+ * @param consideSignAndPrefixInMaxLength Whether to include the sign and prefix in the maximum length calculation.
  */
 template <typename T, typename StrT>
-SEVAL_INLINE void evaluate_binary_literal_n(StrT str, T& number, size_t& i, size_t maxLength) {
-    size_t count = 0;
+SEVAL_INLINE void evaluate_binary_literal_n(StrT str, T& number, size_t& i, size_t maxLength, bool consideSignAndPrefixInMaxLength = true) {
+    size_t cnt = 0;
+    _get_cnti(cnt, i, consideSignAndPrefixInMaxLength);
 #if __cplusplus >= 201703L
     if constexpr (_TypeTraitsSpace::is_integral<T>::value) {
-        while (str[i] != '\0' && is_binary_ch(str[i]) && count < maxLength) {
+        while (str[i] != '\0' && is_binary_ch(str[i]) && _cnti_can_iterate(cnt, maxLength)) {
             number = (number << 1) | evaluate_binary_ch<T>(str[i]);
-            next_(i);
-            count++;
+            /* next_(i) */ _cnti_next(cnt,i);
         }
     } else {
-        while (str[i] != '\0' && is_binary_ch(str[i]) && count < maxLength) {
-            next_(i);
-            count++;
+        while (str[i] != '\0' && is_binary_ch(str[i]) && _cnti_can_iterate(cnt, maxLength)) {
+            /* next_(i) */ _cnti_next(cnt,i);
         }
     }
 #else
-    while (str[i] != '\0' && is_binary_ch(str[i]) && count < maxLength) {
+    while (str[i] != '\0' && is_binary_ch(str[i]) && _cnti_can_iterate(cnt, maxLength)) {
         number = number * 2 + evaluate_binary_ch<T>(str[i]);
-        next_(i);
-        count++;
+        /* next_(i) */ _cnti_next(cnt,i);
     }
-#endif /* C++17 */
+#endif
 }
 
 /**
@@ -552,14 +646,32 @@ SEVAL_INLINE bool has_binary_prefix(StrT literal, size_t& i) {
 }
 
 /**
- * @brief Evaluates a number literal from the string.
+ * @brief Checks if the string has a sign ("+" or "-") at the current index.
+ * @param literal The string to check.
+ * @param i The current index in the string.
+ * @return True if the string has a sign, otherwise false.
+ */
+template <typename StrT>
+SEVAL_INLINE bool has_sign(StrT literal, size_t i) {
+    return literal[i] == '-' || literal[i] == '+';
+}
+
+/**
+ * @brief Evaluates a number literal from the string, considering various literal types (decimal, binary, hexadecimal, floating-point, and exponent).
+ *        Optionally includes the sign and prefix in the evaluation.
+ * 
  * @param str The string to evaluate.
- * @param consideSign Whether to consider the sign of the number.
- * @param consideFloatPoint Whether to consider floating-point literals.
- * @param consideHex Whether to consider hexadecimal literals.
- * @param consideBinary Whether to consider binary literals.
- * @param consideExponent Whether to consider exponent literals.
- * @return The evaluated number.
+ * @param consideSign Whether to consider the sign of the number (default is `true`).
+ * @param consideFloatPoint Whether to consider floating-point literals (default is `true`).
+ * @param consideHex Whether to consider hexadecimal literals (default is `true`).
+ * @param consideBinary Whether to consider binary literals (default is `true`).
+ * @param consideExponent Whether to consider exponent literals (default is `true`).
+ * 
+ * @return The evaluated number, which may be an integral or floating-point type based on `T`.
+ * 
+ * @note The function handles both integral and floating-point types for `T`. If `consideSign` is `true`, it evaluates the sign (`+` or `-`) in the string. If `consideBinary` and `consideHex` are `true`, it recognizes binary ("0b" or "0B") and hexadecimal ("0x" or "0X") prefixes, respectively. Floating-point literals and exponent parts are handled when `consideFloatPoint` and `consideExponent` are `true`. The return value is multiplied by the sign if `consideSign` is `true`.
+ * 
+ * @throws _StatAssert If `T` is not an arithmetic type (integral or floating-point).
  */
 template <typename T, typename StrT>
 SEVAL_INLINE T evaluate(StrT str, bool consideSign = true, bool consideFloatPoint = true, bool consideHex = true, bool consideBinary = true, bool consideExponent = true) {
@@ -603,17 +715,26 @@ SEVAL_INLINE T evaluate(StrT str, bool consideSign = true, bool consideFloatPoin
 
 /**
  * @brief Evaluates a number literal from the string with a maximum character length.
+ *        It supports decimal, binary, hexadecimal, floating-point, and exponent literals.
+ *        Optionally considers the sign and prefix of the number.
+ * 
  * @param str The string to evaluate.
- * @param maxLength The maximum number of characters to read from the string.
- * @param consideSign Whether to consider the sign of the number.
- * @param consideFloatPoint Whether to consider floating-point literals.
- * @param consideHex Whether to consider hexadecimal literals.
- * @param consideBinary Whether to consider binary literals.
- * @param consideExponent Whether to consider exponent literals.
+ * @param maxLength The maximum number of characters to read from the string (default is `SIZE_MAX`).
+ * @param consideSignAndPrefixInMaxLength Whether to consider the sign and prefix in the `maxLength` check (default is `true`).
+ * @param consideSign Whether to consider the sign of the number (default is `true`).
+ * @param consideFloatPoint Whether to consider floating-point literals (default is `true`).
+ * @param consideHex Whether to consider hexadecimal literals (default is `true`).
+ * @param consideBinary Whether to consider binary literals (default is `true`).
+ * @param consideExponent Whether to consider exponent literals (default is `true`).
+ * 
  * @return The evaluated number.
+ * 
+ * @note The function handles both integral and floating-point types for `T`. The sign and prefix (e.g., "+" or "-") are handled if `consideSign` is `true`. The function can also handle binary and hexadecimal prefixes ("0b" or "0x") if `consideBinary` and `consideHex` are `true`, respectively. If `consideFloatPoint` is `true`, it also processes floating-point literals. Additionally, the function handles exponent parts if `consideExponent` is `true`.
+ * 
+ * @throws _StatAssert If `T` is not an arithmetic type (integral or floating-point).
  */
 template <typename T, typename StrT>
-SEVAL_INLINE T evaluate_n(StrT str, size_t maxLength = SIZE_MAX, bool consideSign = true, bool consideFloatPoint = true, bool consideHex = true, bool consideBinary = true, bool consideExponent = true) {
+SEVAL_INLINE T evaluate_n(StrT str, size_t maxLength = SIZE_MAX, bool consideSignAndPrefixInMaxLength = true, bool consideSign = true, bool consideFloatPoint = true, bool consideHex = true, bool consideBinary = true, bool consideExponent = true) {
     _StatAssert(_TypeTraitsSpace::is_arithmetic<T>::value, "Template parameter T must be an arithmetic type (integral or floating-point).");
 
     T number = 0;
@@ -621,6 +742,7 @@ SEVAL_INLINE T evaluate_n(StrT str, size_t maxLength = SIZE_MAX, bool consideSig
 
     Sign sign = SIGN_POSITIVE;
 
+    // Handle the sign of the number if considered
     if (consideSign) {
         Sign intermediateSign = get_sign<StrT>(str, i);
         if (intermediateSign != SIGN_NONE) {
@@ -629,26 +751,30 @@ SEVAL_INLINE T evaluate_n(StrT str, size_t maxLength = SIZE_MAX, bool consideSig
         }
     }
 
+    // Process binary or hexadecimal literals if the corresponding flags are set
     if (consideBinary && has_binary_prefix<StrT>(str, i)) {
-        skip_(i, 2); // Eat: binaryPrefix (0b or 0B) 
-        evaluate_binary_literal_n<T, StrT>(str, number, i, maxLength);
+        skip_(i, 2); // Eat: binaryPrefix (0b or 0B)
+        evaluate_binary_literal_n<T, StrT>(str, number, i, maxLength, consideSignAndPrefixInMaxLength);
     } else if (consideHex && has_hexadecimal_prefix<StrT>(str, i)) {
         skip_(i, 2); /* Eat: hexadecimalPrefix (0x or 0X) */
-        evaluate_hexadecimal_literal_n<T, StrT>(str, number, i, maxLength);
+        evaluate_hexadecimal_literal_n<T, StrT>(str, number, i, maxLength, consideSignAndPrefixInMaxLength);
     } else {
-        evaluate_decimal_literal_n<T, StrT>(str, number, i, maxLength);
+        evaluate_decimal_literal_n<T, StrT>(str, number, i, maxLength, consideSignAndPrefixInMaxLength);
     }
 
+    // Process floating-point literals if required and within the maxLength
     if (_TypeTraitsSpace::is_floating_point<T>::value && consideFloatPoint && str[i] == '.' && maxLength > i) {
         next_(i);
         T decimalPlace = static_cast<T>(0.1);
-        evaluate_floatpoint_literal_n<T, StrT>(str, number, i, decimalPlace, maxLength);
+        evaluate_floatpoint_literal_n<T, StrT>(str, number, i, decimalPlace, maxLength, consideSignAndPrefixInMaxLength);
     }
 
+    // Process exponent literals if required and within the maxLength
     if (_TypeTraitsSpace::is_floating_point<T>::value && consideFloatPoint && consideExponent) {
-        evaluate_exponent_literal_n<T, StrT>(str, number, i, maxLength);
+        evaluate_exponent_literal_n<T, StrT>(str, number, i, maxLength, consideSignAndPrefixInMaxLength);
     }
 
+    // Return the final evaluated number, considering the sign if applicable
     return consideSign ? number * sign : number;
 }
 

@@ -82,17 +82,20 @@ void seval_test_n() {
     {
         // Test within character limit
         assert((seval::evaluate_n<int, const char*>("123", 3)) == 123);   // Limit of 3 characters
-        assert((seval::evaluate_n<int, const char*>("0x1A3", 4)) == 0x1A3);  // Limit of 4 characters
+
+        assert((seval::evaluate_n<int, const char*>("0x1A3", 5)) == 0x1A3);  // Limit of 4 characters (after prefix)
+        assert((seval::evaluate_n<int, const char*>("0x1A3", 4)) == 0x1A);
+        assert((seval::evaluate_n<int, const char*>("0x1A3", 3, false)) == 0x1A3);
 
         // Test exceeding character limit
         assert((seval::evaluate_n<int, const char*>("12345", 4) == 1234));
-        assert((seval::evaluate_n<int, const char*>("0x12345", 4) == 0x1234));
+        assert((seval::evaluate_n<int, const char*>("0x12345", 4) == 0x12));
 
-        assert((seval::evaluate_n<int, const char*>("0b101010", 4) == 0b1010));
+        assert((seval::evaluate_n<int, const char*>("0b101010", 4) == 0b10));
 
         // Test for edge cases
         assert((seval::evaluate_n<int, const char*>("0", 1)) == 0);   // Single character
-        assert((seval::evaluate_n<int, const char*>("-1", 1)) == -1); // Negative number with two characters
+        assert((seval::evaluate_n<int, const char*>("-1", 2)) == -1); // Negative number with two characters
     }
 }
 
