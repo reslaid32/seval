@@ -96,6 +96,13 @@ void seval_test_n() {
         // Test for edge cases
         assert((seval::evaluate_n<int, const char*>("0", 1)) == 0);   // Single character
         assert((seval::evaluate_n<int, const char*>("-1", 2)) == -1); // Negative number with two characters
+
+        assert(floatpoint_compare(seval::evaluate_n<float, const char*>("0.0", 3), 0.0f) == true);   // Single character
+        assert(floatpoint_compare(seval::evaluate_n<float, const char*>("-1.23", 5), -1.23f) == true); // Negative number with 4 characters
+
+        assert(floatpoint_compare(seval::evaluate_n<float, const char*>("-1.23e2", 7), -123.0f) == true);
+        assert(floatpoint_compare(seval::evaluate_n<float, const char*>("-1.23e2", 6), -123.0f) == false); // Incorrect maxLength (with the number sign, the length is 7, not 6).
+        assert(floatpoint_compare(seval::evaluate_n<float, const char*>("-1.23e2", 6, false), -123.0f) == true); // Correct maxLength (since the sign of the number is not included in the length, the argument consideSignAndPrefixIn MaxLength is set to false)
     }
 }
 
