@@ -379,6 +379,157 @@ SEVAL_INLINE void evaluate_binary_literal(StrT str, T& number, size_t& i) {
 }
 
 /**
+ * @brief Parses a decimal literal from the string with a specified length.
+ * @param str The string being parsed.
+ * @param number The number to update with the parsed value.
+ * @param i The current index in the string.
+ * @param maxLength The maximum number of characters to read.
+ */
+template <typename T, typename StrT>
+SEVAL_INLINE void evaluate_decimal_literal_n(StrT str, T& number, size_t& i, size_t maxLength) {
+    size_t count = 0;
+    #if __cplusplus >= 201703L
+    if constexpr (_TypeTraitsSpace::is_integral<T>::value) {
+        while (str[i] != '\0' && is_hexadecimal_ch(str[i]) && count < maxLength) {
+            number = (number << 3) + (number << 1) + evaluate_decimal_ch<T>(str[i]);
+            next_(i);
+            count++;
+        }
+    } else {
+        while (str[i] != '\0' && is_hexadecimal_ch(str[i]) && count < maxLength) {
+            number = number * 10 + evaluate_decimal_ch<T>(str[i]);
+            next_(i);
+            count++;
+        }
+    }
+    #else
+    while (str[i] != '\0' && is_decimal_ch(str[i]) && count < maxLength) {
+        number = number * 10 + evaluate_decimal_ch<T>(str[i]);
+        next_(i);
+        count++;
+    }
+    #endif
+}
+
+/**
+ * @brief Parses a floating-point literal from the string with a specified length.
+ * @param str The string being parsed.
+ * @param number The number to update with the parsed value.
+ * @param i The current index in the string.
+ * @param decimalPlace The current decimal place.
+ * @param maxLength The maximum number of characters to read.
+ */
+template <typename T, typename StrT>
+SEVAL_INLINE void evaluate_floatpoint_literal_n(StrT str, T& number, size_t& i, T decimalPlace, size_t maxLength) {
+    size_t count = 0;
+    while (str[i] != '\0' && is_decimal_ch(str[i]) && count < maxLength) {
+        number += evaluate_decimal_ch<T>(str[i]) * decimalPlace;
+        decimalPlace /= static_cast<T>(10);
+        next_(i);
+        count++;
+    }
+}
+
+/**
+ * @brief Parses an exponent part of a floating-point literal with a specified length.
+ * @param str The string being parsed.
+ * @param number The number to update with the exponent.
+ * @param i The current index in the string.
+ * @param maxLength The maximum number of characters to read.
+ */
+template <typename T, typename StrT>
+SEVAL_INLINE void evaluate_exponent_literal_n(StrT str, T& number, size_t& i, size_t maxLength) {
+    size_t count = 0;
+    if (str[i] == 'e' || str[i] == 'E') {
+        next_(i);
+        Sign expSign = SIGN_POSITIVE;
+
+        if (str[i] == '-') {
+            expSign = SIGN_NEGATIVE;
+            next_(i);
+        } else if (str[i] == '+') {
+            next_(i);
+        }
+
+        int exponent = 0;
+        while (str[i] != '\0' && is_decimal_ch(str[i]) && count < maxLength) {
+        #if __cplusplus >= 201703L
+            exponent = (exponent << 3) + (exponent << 1) + evaluate_decimal_ch<int>(str[i]);
+        #else
+            exponent = exponent * 10 + evaluate_decimal_ch<int>(str[i]);
+        #endif /* C++17 */
+            next_(i);
+            count++;
+        }
+        number *= std::pow(static_cast<T>(10), static_cast<T>(expSign * exponent));
+    }
+}
+
+/**
+ * @brief Parses a hexadecimal literal from the string with a specified length.
+ * @param str The string being parsed.
+ * @param number The number to update with the parsed value.
+ * @param i The current index in the string.
+ * @param maxLength The maximum number of characters to read.
+ */
+template <typename T, typename StrT>
+SEVAL_INLINE void evaluate_hexadecimal_literal_n(StrT str, T& number, size_t& i, size_t maxLength) {
+    size_t count = 0;
+#if __cplusplus >= 201703L
+    if constexpr (_TypeTraitsSpace::is_integral<T>::value) {
+        while (str[i] != '\0' && is_hexadecimal_ch(str[i]) && count < maxLength) {
+            number = (number << 4) | evaluate_hexadecimal_ch<T>(str[i]);
+            next_(i);
+            count++;
+        }
+    } else {
+        while (str[i] != '\0' && is_hexadecimal_ch(str[i]) && count < maxLength) {
+            next_(i);
+            count++;
+        }
+    }
+#else
+    while (str[i] != '\0' && is_hexadecimal_ch(str[i]) && count < maxLength) {
+        number = number * 16 + evaluate_hexadecimal_ch<T>(str[i]);
+        next_(i);
+        count++;
+    }
+#endif /* C++17 */
+}
+
+/**
+ * @brief Parses a binary literal from the string with a specified length.
+ * @param str The string being parsed.
+ * @param number The number to update with the parsed value.
+ * @param i The current index in the string.
+ * @param maxLength The maximum number of characters to read.
+ */
+template <typename T, typename StrT>
+SEVAL_INLINE void evaluate_binary_literal_n(StrT str, T& number, size_t& i, size_t maxLength) {
+    size_t count = 0;
+#if __cplusplus >= 201703L
+    if constexpr (_TypeTraitsSpace::is_integral<T>::value) {
+        while (str[i] != '\0' && is_binary_ch(str[i]) && count < maxLength) {
+            number = (number << 1) | evaluate_binary_ch<T>(str[i]);
+            next_(i);
+            count++;
+        }
+    } else {
+        while (str[i] != '\0' && is_binary_ch(str[i]) && count < maxLength) {
+            next_(i);
+            count++;
+        }
+    }
+#else
+    while (str[i] != '\0' && is_binary_ch(str[i]) && count < maxLength) {
+        number = number * 2 + evaluate_binary_ch<T>(str[i]);
+        next_(i);
+        count++;
+    }
+#endif /* C++17 */
+}
+
+/**
  * @brief Checks if the string has a hexadecimal prefix ("0x" or "0X").
  * @param literal The string to check.
  * @param i The current index in the string.
@@ -445,6 +596,57 @@ SEVAL_INLINE T evaluate(StrT str, bool consideSign = true, bool consideFloatPoin
 
     if (_TypeTraitsSpace::is_floating_point<T>::value && consideFloatPoint && consideExponent) {
         evaluate_exponent_literal<T, StrT>(str, number, i);
+    }
+
+    return consideSign ? number * sign : number;
+}
+
+/**
+ * @brief Evaluates a number literal from the string with a maximum character length.
+ * @param str The string to evaluate.
+ * @param maxLength The maximum number of characters to read from the string.
+ * @param consideSign Whether to consider the sign of the number.
+ * @param consideFloatPoint Whether to consider floating-point literals.
+ * @param consideHex Whether to consider hexadecimal literals.
+ * @param consideBinary Whether to consider binary literals.
+ * @param consideExponent Whether to consider exponent literals.
+ * @return The evaluated number.
+ */
+template <typename T, typename StrT>
+SEVAL_INLINE T evaluate_n(StrT str, size_t maxLength = std::numeric_limits<size_t>::max(), bool consideSign = true, bool consideFloatPoint = true, bool consideHex = true, bool consideBinary = true, bool consideExponent = true) {
+    _StatAssert(_TypeTraitsSpace::is_arithmetic<T>::value, "Template parameter T must be an arithmetic type (integral or floating-point).");
+
+    T number = 0;
+    size_t i = 0;
+
+    Sign sign = SIGN_POSITIVE;
+
+    if (consideSign) {
+        Sign intermediateSign = get_sign<StrT>(str, i);
+        if (intermediateSign != SIGN_NONE) {
+            sign = intermediateSign;
+            skip_(i, 1); /* Eat: sigSym (+ or -) */
+        }
+    }
+
+    if (consideBinary && has_binary_prefix<StrT>(str, i)) {
+        skip_(i, 2); // Eat: binaryPrefix (0b or 0B) 
+        evaluate_binary_literal_n<T, StrT>(str, number, i, maxLength);
+    } else if (consideHex && has_hexadecimal_prefix<StrT>(str, i)) {
+        skip_(i, 2); /* Eat: hexadecimalPrefix (0x or 0X) */
+        evaluate_hexadecimal_literal_n<T, StrT>(str, number, i, maxLength);
+    } else {
+        evaluate_decimal_literal_n<T, StrT>(str, number, i, maxLength);
+    }
+
+    if (_TypeTraitsSpace::is_floating_point<T>::value && consideFloatPoint && str[i] == '.' && maxLength > i) {
+        next_(i);
+        T decimalPlace = static_cast<T>(0.1);
+        evaluate_floatpoint_literal_n<T, StrT>(str, number, i, decimalPlace, maxLength);
+    }
+
+    if (_TypeTraitsSpace::is_floating_point<T>::value && consideFloatPoint && consideExponent) {
+        evaluate_exponent_literal_n<T, StrT>(str, number, i, maxLength);
     }
 
     return consideSign ? number * sign : number;
