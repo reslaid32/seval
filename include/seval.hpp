@@ -9,6 +9,9 @@
 
 #pragma once
 
+#if !defined(SEVAL_HPP_LOADED)
+#define SEVAL_HPP_LOADED
+
 #include <iostream>
 
 #include <cmath>
@@ -83,6 +86,7 @@ struct is_arithmetic {
 #endif
 }
 
+namespace internal {
 /**
  * @enum Sign
  * @brief Represents the sign of a number (positive, negative, or none).
@@ -656,6 +660,8 @@ SEVAL_INLINE bool has_sign(StrT literal, size_t i) {
     return literal[i] == '-' || literal[i] == '+';
 }
 
+} /* internal */
+
 /**
  * @brief Evaluates a number literal from the string, considering various literal types (decimal, binary, hexadecimal, floating-point, and exponent).
  *        Optionally includes the sign and prefix in the evaluation.
@@ -680,34 +686,34 @@ SEVAL_INLINE T evaluate(StrT str, bool consideSign = true, bool consideFloatPoin
     T number = 0;
     size_t i = 0;
 
-    Sign sign = SIGN_POSITIVE;
+    internal::Sign sign = internal::SIGN_POSITIVE;
 
     if (consideSign) {
-        Sign intermediateSign = get_sign<StrT>(str, i);
-        if (intermediateSign != SIGN_NONE) {
+        internal::Sign intermediateSign = internal::get_sign<StrT>(str, i);
+        if (intermediateSign != internal::SIGN_NONE) {
             sign = intermediateSign;
-            skip_(i, 1); /* Eat: sigSym (+ or -) */
+            internal::skip_(i, 1); /* Eat: sigSym (+ or -) */
         }
     }
 
-    if (consideBinary && has_binary_prefix<StrT>(str, i)) {
-        skip_(i, 2); // Eat: binaryPrefix (0b or 0B) 
-        evaluate_binary_literal<T, StrT>(str, number, i);
-    } else if (consideHex && has_hexadecimal_prefix<StrT>(str, i)) {
-        skip_(i, 2); /* Eat: hexadecimalPrefix (0x or 0X) */
-        evaluate_hexadecimal_literal<T, StrT>(str, number, i);
+    if (consideBinary && internal::has_binary_prefix<StrT>(str, i)) {
+        internal::skip_(i, 2); // Eat: binaryPrefix (0b or 0B) 
+        internal::evaluate_binary_literal<T, StrT>(str, number, i);
+    } else if (consideHex && internal::has_hexadecimal_prefix<StrT>(str, i)) {
+        internal::skip_(i, 2); /* Eat: hexadecimalPrefix (0x or 0X) */
+        internal::evaluate_hexadecimal_literal<T, StrT>(str, number, i);
     } else {
-        evaluate_decimal_literal<T, StrT>(str, number, i);
+        internal::evaluate_decimal_literal<T, StrT>(str, number, i);
     }
 
     if (_TypeTraitsSpace::is_floating_point<T>::value && consideFloatPoint && str[i] == '.') {
-        next_(i);
+        internal::next_(i);
         T decimalPlace = static_cast<T>(0.1);
-        evaluate_floatpoint_literal<T, StrT>(str, number, i, decimalPlace);
+        internal::evaluate_floatpoint_literal<T, StrT>(str, number, i, decimalPlace);
     }
 
     if (_TypeTraitsSpace::is_floating_point<T>::value && consideFloatPoint && consideExponent) {
-        evaluate_exponent_literal<T, StrT>(str, number, i);
+        internal::evaluate_exponent_literal<T, StrT>(str, number, i);
     }
 
     return consideSign ? number * sign : number;
@@ -740,38 +746,38 @@ SEVAL_INLINE T evaluate_n(StrT str, size_t maxLength = SIZE_MAX, bool consideSig
     T number = 0;
     size_t i = 0;
 
-    Sign sign = SIGN_POSITIVE;
+    internal::Sign sign = internal::SIGN_POSITIVE;
 
     // Handle the sign of the number if considered
     if (consideSign) {
-        Sign intermediateSign = get_sign<StrT>(str, i);
-        if (intermediateSign != SIGN_NONE) {
+        internal::Sign intermediateSign = internal::get_sign<StrT>(str, i);
+        if (intermediateSign != internal::SIGN_NONE) {
             sign = intermediateSign;
-            skip_(i, 1); /* Eat: sigSym (+ or -) */
+            internal::skip_(i, 1); /* Eat: sigSym (+ or -) */
         }
     }
 
     // Process binary or hexadecimal literals if the corresponding flags are set
-    if (consideBinary && has_binary_prefix<StrT>(str, i)) {
-        skip_(i, 2); // Eat: binaryPrefix (0b or 0B)
-        evaluate_binary_literal_n<T, StrT>(str, number, i, maxLength, consideSignAndPrefixInMaxLength);
-    } else if (consideHex && has_hexadecimal_prefix<StrT>(str, i)) {
-        skip_(i, 2); /* Eat: hexadecimalPrefix (0x or 0X) */
-        evaluate_hexadecimal_literal_n<T, StrT>(str, number, i, maxLength, consideSignAndPrefixInMaxLength);
+    if (consideBinary && internal::has_binary_prefix<StrT>(str, i)) {
+        internal::skip_(i, 2); // Eat: binaryPrefix (0b or 0B)
+        internal::evaluate_binary_literal_n<T, StrT>(str, number, i, maxLength, consideSignAndPrefixInMaxLength);
+    } else if (consideHex && internal::has_hexadecimal_prefix<StrT>(str, i)) {
+        internal::skip_(i, 2); /* Eat: hexadecimalPrefix (0x or 0X) */
+        internal::evaluate_hexadecimal_literal_n<T, StrT>(str, number, i, maxLength, consideSignAndPrefixInMaxLength);
     } else {
-        evaluate_decimal_literal_n<T, StrT>(str, number, i, maxLength, consideSignAndPrefixInMaxLength);
+        internal::evaluate_decimal_literal_n<T, StrT>(str, number, i, maxLength, consideSignAndPrefixInMaxLength);
     }
 
     // Process floating-point literals if required and within the maxLength
     if (_TypeTraitsSpace::is_floating_point<T>::value && consideFloatPoint && str[i] == '.' && maxLength > i) {
-        next_(i);
+        internal::next_(i);
         T decimalPlace = static_cast<T>(0.1);
-        evaluate_floatpoint_literal_n<T, StrT>(str, number, i, decimalPlace, maxLength, consideSignAndPrefixInMaxLength);
+        internal::evaluate_floatpoint_literal_n<T, StrT>(str, number, i, decimalPlace, maxLength, consideSignAndPrefixInMaxLength);
     }
 
     // Process exponent literals if required and within the maxLength
     if (_TypeTraitsSpace::is_floating_point<T>::value && consideFloatPoint && consideExponent) {
-        evaluate_exponent_literal_n<T, StrT>(str, number, i, maxLength, consideSignAndPrefixInMaxLength);
+        internal::evaluate_exponent_literal_n<T, StrT>(str, number, i, maxLength, consideSignAndPrefixInMaxLength);
     }
 
     // Return the final evaluated number, considering the sign if applicable
@@ -779,3 +785,5 @@ SEVAL_INLINE T evaluate_n(StrT str, size_t maxLength = SIZE_MAX, bool consideSig
 }
 
 } /* seval */
+
+#endif // SEVAL_HPP_LOADED
