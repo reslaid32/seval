@@ -1,7 +1,7 @@
 #include <iostream>
 #include <cassert>
 #include <stdint.h>
-#include "seval.hpp"
+#include "include/seval.hpp"
 
 template <typename T>
 bool floatpoint_compare(T f1, T f2, T deviation = 1e-6) {
@@ -77,8 +77,28 @@ void seval_test() {
     }
 }
 
+void seval_test_n() {
+    /* Character Limit Test */
+    {
+        // Test within character limit
+        assert((seval::evaluate_n<int, const char*>("123", 3)) == 123);   // Limit of 3 characters
+        assert((seval::evaluate_n<int, const char*>("0x1A3", 4)) == 0x1A3);  // Limit of 4 characters
+
+        // Test exceeding character limit
+        assert((seval::evaluate_n<int, const char*>("12345", 4) == 1234));
+        assert((seval::evaluate_n<int, const char*>("0x12345", 4) == 0x1234));
+
+        assert((seval::evaluate_n<int, const char*>("0b101010", 4) == 0b1010));
+
+        // Test for edge cases
+        assert((seval::evaluate_n<int, const char*>("0", 1)) == 0);   // Single character
+        assert((seval::evaluate_n<int, const char*>("-1", 2)) == -1); // Negative number with two characters
+    }
+}
+
 int main() {
     seval_test();
+    seval_test_n();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }
