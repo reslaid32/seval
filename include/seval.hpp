@@ -5,15 +5,12 @@
  * This header contains several utility functions and templates for parsing and evaluating
  * decimal, hexadecimal, binary, and floating-point numbers, including handling signs, exponents, and prefixes.
  * The functions are designed to support both integral and floating-point types.
- * 
- * std: c++17
  */
-
 
 #pragma once
 
 #include <iostream>
-#include <type_traits>
+
 #include <cmath>
 
 #if !defined(SEVAL_INLINE)
@@ -21,6 +18,70 @@
 #endif // SEVAL_INLINE
 
 namespace seval {
+
+namespace compatibility {
+
+namespace static_assertion {
+template <bool B>
+struct StaticAssert;
+
+template <>
+struct StaticAssert<true> {};
+
+#define compatibility_static_assert(expr, msg) \
+    typedef compatibility::static_assertion::StaticAssert<(expr)> static_assert_failed_at_##__LINE__
+} /* static_assertion */
+
+namespace type_traits {
+template <typename T> struct is_integral {
+    static const bool value = false;
+};
+template <> struct is_integral<char> { static const bool value = true; };
+template <> struct is_integral<signed char> { static const bool value = true; };
+template <> struct is_integral<unsigned char> { static const bool value = true; };
+template <> struct is_integral<short> { static const bool value = true; };
+template <> struct is_integral<unsigned short> { static const bool value = true; };
+template <> struct is_integral<int> { static const bool value = true; };
+template <> struct is_integral<unsigned int> { static const bool value = true; };
+template <> struct is_integral<long> { static const bool value = true; };
+template <> struct is_integral<unsigned long> { static const bool value = true; };
+template <> struct is_integral<long long> { static const bool value = true; };
+template <> struct is_integral<unsigned long long> { static const bool value = true; };
+template <> struct is_integral<bool> { static const bool value = true; };
+#ifdef __SIZEOF_INT128__
+template <> struct is_integral<__int128> { static const bool value = true; };
+template <> struct is_integral<unsigned __int128> { static const bool value = true; };
+#endif
+template <> struct is_integral<wchar_t> { static const bool value = true; };
+
+template <typename T> struct is_floating_point {
+    static const bool value = false;
+};
+template <> struct is_floating_point<float> { static const bool value = true; };
+template <> struct is_floating_point<double> { static const bool value = true; };
+template <> struct is_floating_point<long double> { static const bool value = true; };
+#if defined(__SIZEOF_FLOAT128__)
+template <> struct is_floating_point<__float128> { static const bool value = true; };
+#endif // __SIZEOF_FLOAT128__
+
+template <typename T>
+struct is_arithmetic {
+    static const bool value = is_integral<T>::value || is_floating_point<T>::value;
+};
+} /* type_traits */
+
+#if __cplusplus < 201103L
+#pragma message("C++98/03 compatibility mode enabled")
+    #include <stdint.h>
+    #define _TypeTraitsSpace compatibility::type_traits
+    #define _StatAssert compatibility_static_assert
+#else
+    #include <cstdint>
+    #include <type_traits>
+    #define _TypeTraitsSpace std
+    #define _StatAssert static_assert
+#endif
+}
 
 /**
  * @enum Sign
@@ -196,7 +257,7 @@ SEVAL_INLINE T evaluate_any_ch(const char ch) {
 template <typename T, typename StrT>
 SEVAL_INLINE void evaluate_decimal_literal(StrT str, T& number, size_t& i) {
     #if __cplusplus >= 201703L
-    if constexpr (std::is_integral<T>::value) {
+    if constexpr (_TypeTraitsSpace::is_integral<T>::value) {
         while (str[i] != '\0' && is_hexadecimal_ch(str[i])) {
             number = (number << 3) + (number << 1) + evaluate_decimal_ch<T>(str[i]);
             next_(i);
@@ -272,7 +333,7 @@ SEVAL_INLINE void evaluate_exponent_literal(StrT str, T& number, size_t& i) {
 template <typename T, typename StrT>
 SEVAL_INLINE void evaluate_hexadecimal_literal(StrT str, T& number, size_t& i) {
 #if __cplusplus >= 201703L
-    if constexpr (std::is_integral<T>::value) {
+    if constexpr (_TypeTraitsSpace::is_integral<T>::value) {
         while (str[i] != '\0' && is_hexadecimal_ch(str[i])) {
             number = (number << 4) | evaluate_hexadecimal_ch<T>(str[i]);
             next_(i);
@@ -299,7 +360,7 @@ SEVAL_INLINE void evaluate_hexadecimal_literal(StrT str, T& number, size_t& i) {
 template <typename T, typename StrT>
 SEVAL_INLINE void evaluate_binary_literal(StrT str, T& number, size_t& i) {
 #if __cplusplus >= 201703L
-    if constexpr (std::is_integral<T>::value) {
+    if constexpr (_TypeTraitsSpace::is_integral<T>::value) {
         while (str[i] != '\0' && is_binary_ch(str[i])) {
             number = (number << 1) | evaluate_binary_ch<T>(str[i]);
             next_(i);
@@ -351,7 +412,7 @@ SEVAL_INLINE bool has_binary_prefix(StrT literal, size_t& i) {
  */
 template <typename T, typename StrT>
 SEVAL_INLINE T evaluate(StrT str, bool consideSign = true, bool consideFloatPoint = true, bool consideHex = true, bool consideBinary = true, bool consideExponent = true) {
-    static_assert(std::is_arithmetic<T>::value, "Template parameter T must be an arithmetic type (integral or floating-point).");
+    _StatAssert(_TypeTraitsSpace::is_arithmetic<T>::value, "Template parameter T must be an arithmetic type (integral or floating-point).");
     
     T number = 0;
     size_t i = 0;
@@ -376,13 +437,13 @@ SEVAL_INLINE T evaluate(StrT str, bool consideSign = true, bool consideFloatPoin
         evaluate_decimal_literal<T, StrT>(str, number, i);
     }
 
-    if (std::is_floating_point<T>::value && consideFloatPoint && str[i] == '.') {
+    if (_TypeTraitsSpace::is_floating_point<T>::value && consideFloatPoint && str[i] == '.') {
         next_(i);
         T decimalPlace = static_cast<T>(0.1);
         evaluate_floatpoint_literal<T, StrT>(str, number, i, decimalPlace);
     }
 
-    if (std::is_floating_point<T>::value && consideFloatPoint && consideExponent) {
+    if (_TypeTraitsSpace::is_floating_point<T>::value && consideFloatPoint && consideExponent) {
         evaluate_exponent_literal<T, StrT>(str, number, i);
     }
 

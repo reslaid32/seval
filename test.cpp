@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cassert>
+#include <stdint.h>
 #include "seval.hpp"
 
 template <typename T>

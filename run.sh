@@ -6,18 +6,16 @@ if [ ! -d "bin" ]; then
     exit 1
 fi
 
-# Run the C++14 binaries
-echo "Running C++14 binaries..."
-echo "Running bin/b14..."
-./bin/b14
-echo "Running bin/t14..."
-./bin/t14
-
-# Run the C++17 binaries
-echo "Running C++17 binaries..."
-echo "Running bin/b17..."
-./bin/b17
-echo "Running bin/t17..."
-./bin/t17
+# List all binaries in the bin directory
+echo "Running all binaries in the 'bin' directory..."
+for binary in bin/*; do
+    if [ -x "$binary" ]; then
+        echo "Running $binary..."
+        "$binary"
+        echo ""
+    else
+        echo "Skipping $binary (not executable)."
+    fi
+done
 
 echo "Run complete."
