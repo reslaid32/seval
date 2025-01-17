@@ -613,7 +613,7 @@ SEVAL_INLINE T evaluate(StrT str, bool consideSign = true, bool consideFloatPoin
  * @return The evaluated number.
  */
 template <typename T, typename StrT>
-SEVAL_INLINE T evaluate_n(StrT str, size_t maxLength = std::numeric_limits<size_t>::max(), bool consideSign = true, bool consideFloatPoint = true, bool consideHex = true, bool consideBinary = true, bool consideExponent = true) {
+SEVAL_INLINE T evaluate_n(StrT str, size_t maxLength = SIZE_MAX, bool consideSign = true, bool consideFloatPoint = true, bool consideHex = true, bool consideBinary = true, bool consideExponent = true) {
     _StatAssert(_TypeTraitsSpace::is_arithmetic<T>::value, "Template parameter T must be an arithmetic type (integral or floating-point).");
 
     T number = 0;
