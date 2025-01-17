@@ -5,7 +5,7 @@
 
 template <typename Func>
 void benchmark(const std::string& name, Func func) {
-    constexpr int iterations = 1'000'000; // количество повторений для точности
+    constexpr int iterations = 1'000'000; 
     auto start = std::chrono::high_resolution_clock::now();
 
     for (int i = 0; i < iterations; ++i) {
