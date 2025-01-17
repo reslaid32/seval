@@ -12,9 +12,8 @@
 #if !defined(SEVAL_HPP_LOADED)
 #define SEVAL_HPP_LOADED
 
-#include <iostream>
-
-#include <cmath>
+#include <stdint.h>
+#include <stddef.h>
 
 #if !defined(SEVAL_INLINE)
 #define SEVAL_INLINE inline
@@ -87,6 +86,49 @@ struct is_arithmetic {
 }
 
 namespace internal {
+namespace math {
+/**
+ * @brief Calculates the power of a number.
+ * 
+ * This function computes the value of the base raised to the exponent (base^exponent).
+ * It efficiently handles both positive and negative exponents using binary exponentiation (exponentiation by squaring).
+ * 
+ * @param base The base value to be raised to the power.
+ * @param exponent The exponent to which the base is raised.
+ * 
+ * @return The result of base raised to the power of exponent.
+ *         If exponent is negative, the reciprocal of the result is returned.
+ *         If exponent is zero, the result is 1 (any number raised to 0 is 1).
+ * 
+ * @note This function supports both integer and real base values and integer exponents.
+ */
+double pow(double base, int exponent) {
+    double result = 1.0;
+
+    // Handle the case when exponent is negative
+    bool isNegativeExponent = (exponent < 0);
+    if (isNegativeExponent) {
+        exponent = -exponent; // Make exponent positive
+    }
+
+    // Calculate power using the fast exponentiation method
+    while (exponent > 0) {
+        if (exponent % 2 == 1) {
+            result *= base;
+        }
+        base *= base;
+        exponent /= 2;
+    }
+
+    // If exponent was negative, return the reciprocal
+    if (isNegativeExponent) {
+        result = 1.0 / result;
+    }
+
+    return result;
+}
+}
+
 /**
  * @enum Sign
  * @brief Represents the sign of a number (positive, negative, or none).
@@ -379,7 +421,7 @@ SEVAL_INLINE void evaluate_exponent_literal(StrT str, T& number, size_t& i) {
         #endif /* C++17 */
             next_(i);
         }
-        number *= std::pow(static_cast<T>(10), static_cast<T>(expSign * exponent));
+        number *= internal::math::pow(static_cast<T>(10), static_cast<T>(expSign * exponent));
     }
 }
 
@@ -561,7 +603,7 @@ SEVAL_INLINE void evaluate_exponent_literal_n(StrT str, T& number, size_t& i, si
         #endif
             /* next_(i) */ _cnti_next(cnt,i);
         }
-        number *= std::pow(static_cast<T>(10), static_cast<T>(expSign * exponent));
+        number *= internal::math::pow(static_cast<T>(10), static_cast<T>(expSign * exponent));
     }
 }
 
