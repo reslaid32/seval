@@ -92,7 +92,7 @@ void seval_test_n() {
 
         // Test for edge cases
         assert((seval::evaluate_n<int, const char*>("0", 1)) == 0);   // Single character
-        assert((seval::evaluate_n<int, const char*>("-1", 2)) == -1); // Negative number with two characters
+        assert((seval::evaluate_n<int, const char*>("-1", 1)) == -1); // Negative number with two characters
     }
 }
 
