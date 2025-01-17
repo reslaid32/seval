@@ -20,84 +20,84 @@
 #define BENCHMARK_ITERATIONS 1000000
 
 struct Benchmark8BitSigned {
-    void operator()() const {
+    SEVAL_INLINE void operator()() const {
         volatile int8_t result = seval::evaluate<int8_t, const char*>("127");
         (void)result;
     }
 };
 
 struct Benchmark8BitUnsigned {
-    void operator()() const {
+    SEVAL_INLINE void operator()() const {
         volatile uint8_t result = seval::evaluate<uint8_t, const char*>("255");
         (void)result;
     }
 };
 
 struct Benchmark16BitSigned {
-    void operator()() const {
+    SEVAL_INLINE void operator()() const {
         volatile int16_t result = seval::evaluate<int16_t, const char*>("32767");
         (void)result;
     }
 };
 
 struct Benchmark16BitUnsigned {
-    void operator()() const {
+    SEVAL_INLINE void operator()() const {
         volatile uint16_t result = seval::evaluate<uint16_t, const char*>("65535");
         (void)result;
     }
 };
 
 struct Benchmark32BitSigned {
-    void operator()() const {
+    SEVAL_INLINE void operator()() const {
         volatile int32_t result = seval::evaluate<int32_t, const char*>("2147483647");
         (void)result;
     }
 };
 
 struct Benchmark32BitUnsigned {
-    void operator()() const {
+    SEVAL_INLINE void operator()() const {
         volatile uint32_t result = seval::evaluate<uint32_t, const char*>("4294967295");
         (void)result;
     }
 };
 
 struct Benchmark64BitSigned {
-    void operator()() const {
+    SEVAL_INLINE void operator()() const {
         volatile int64_t result = seval::evaluate<int64_t, const char*>("9223372036854775807");
         (void)result;
     }
 };
 
 struct Benchmark64BitUnsigned {
-    void operator()() const {
+    SEVAL_INLINE void operator()() const {
         volatile uint64_t result = seval::evaluate<uint64_t, const char*>("18446744073709551615");
         (void)result;
     }
 };
 
 struct BenchmarkHexadecimal {
-    void operator()() const {
+    SEVAL_INLINE void operator()() const {
         volatile int result = seval::evaluate<int, const char*>("0x123");
         (void)result;
     }
 };
 
 struct BenchmarkFloatingPoint {
-    void operator()() const {
+    SEVAL_INLINE void operator()() const {
         volatile float result = seval::evaluate<float, const char*>("3.14");
         (void)result;
     }
 };
 
 struct BenchmarkFloatingPointExponent {
-    void operator()() const {
+    SEVAL_INLINE void operator()() const {
         volatile float result = seval::evaluate<float, const char*>("3.14e2");
         (void)result;
     }
 };
 
 struct BenchmarkBinary {
-    void operator()() const {
+    SEVAL_INLINE void operator()() const {
         volatile int result = seval::evaluate<int, const char*>("0b101010");
         (void)result;
     }
